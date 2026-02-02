@@ -204,7 +204,7 @@ async function processFrame() {
 
     // 2. Get Data URL
     const start = Date.now();
-    const dataUrl = tempCanvas.toDataURL('image/jpeg', 0.8); // 0.8 quality
+    const dataUrl = tempCanvas.toDataURL('image/jpeg', 0.8); 
 
     // 3. Send to backend
     try {
@@ -233,30 +233,16 @@ function renderOverlay(poseData) {
     const { torso, width_shoulder } = poseData;
 
     // Get shirt image
-    const img = getShirtImage(SERVER_URL + '/' + currentShirt); // Assuming static files at root
+    const img = getShirtImage(SERVER_URL + '/' + currentShirt);
 
     if (!img.complete) return; // Wait for load
 
-    // Calculate position and size
-    // Center is torso.center [x, y]
-    // Width is proportional to shoulder width
-
-    // Scale factor can be Tweaked. 
-    // Usually shirt needs to be slightly wider than shoulders.
     const shirtWidth = width_shoulder * 2.8;
 
     // Aspect ratio of the shirt image
     const aspectRatio = img.height / img.width;
     const shirtHeight = shirtWidth * aspectRatio;
 
-    // Top-left corner
-    // We want the shirt's "neck" or "shoulder line" to align with the detected shoulders.
-    // Simplifying: Center the shirt at the torso center, but maybe shift up distinctively?
-    // Torso center from backend is typically mid-point between hips and shoulders.
-    // So if we place center of shirt there, it might be too low if the shirt image includes long bottom.
-    // But let's try centering first.
-
-    // Save context for rotation
     ctx.save();
 
     const centerX = torso.center[0];
@@ -265,22 +251,12 @@ function renderOverlay(poseData) {
     // Translate to center
     ctx.translate(centerX, centerY);
 
-    // Rotate
-    // Note: MediaPipe angle might need conversion.
-    // If backend returns degrees or radians? I'll assume degrees for now or check backend implementation.
-    // Let's assume Degrees for now.
     ctx.rotate((torso.angle * Math.PI) / 180);
 
     // Draw image centered at (0,0)
     ctx.drawImage(img, -shirtWidth / 2, -shirtHeight / 2, shirtWidth, shirtHeight);
 
     ctx.restore();
-
-    // Debug 
-    // ctx.fillStyle = 'red';
-    // ctx.beginPath();
-    // ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
-    // ctx.fill();
 }
 
 // Mouse Hover Effect

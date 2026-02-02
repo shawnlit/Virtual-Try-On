@@ -33,12 +33,9 @@ body {
     height: 100vh;
     z-index: -1;
 
-    /* 1. We removed the blend mode to make sure it's visible */
-    /* 2. We set opacity to 1.0 (full visibility) */
     opacity: 0.4;
     background-color: #050505;
 
-    /* Make sure this filename matches your file EXACTLY */
     background-image: url("commercial-district-at-san-cristobal-chiapas-mexico.webp");
 
     background-position: center;
@@ -334,13 +331,6 @@ video {
     transform: scaleX(-1);
 }
 
-/* Since the container is mirrored for user convenience (mirror effect),
-   but we want the text/buttons inside NOT to be mirrored if they were inside.
-   However, our camera overlay just has video/canvas.
-   
-   If we mirror the CONTAINER, we need to be careful. 
-   Better to mirror the video and canvas individually.
-*/
 
 .close-cam {
     margin-top: 20px;
