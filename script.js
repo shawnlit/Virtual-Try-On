@@ -30,7 +30,6 @@ uploadCard.addEventListener('click', () => {
 function selectShirt(shirtName) {
     currentShirt = shirtName;
     console.log(`Selected ${currentShirt}`);
-    // If camera is open, we could provide visual feedback or just update state
     if (isScanning) {
         // Maybe toast notification?
     }
