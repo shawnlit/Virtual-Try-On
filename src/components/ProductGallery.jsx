@@ -1,14 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const products = [
-    { id: 1, category: 'glasses', emoji: '🕶', name: 'Aviator Pro', brand: 'Ray-Ban', price: '$149' },
-    { id: 2, category: 'glasses', emoji: '👓', name: 'Round Classic', brand: 'Persol', price: '$220' },
-    { id: 3, category: 'glasses', emoji: '🕶', name: 'Cat-Eye Slim', brand: 'Gucci', price: '$390' },
-    {
-        id: 4, category: 'hats', emoji: '🧢', name: "Snapback '96", brand: 'Nike', price: '$45'
-    },
-    { id: 5, category: 'hats', emoji: '🎩', name: 'Wool Fedora', brand: 'Stetson', price: '$120' },
-    { id: 6, category: 'hats', emoji: '👒', name: 'Raffia Brim', brand: 'H&M', price: '$35' },
+    { id: 1, category: 'glasses', emoji: '🕶', name: 'Urban Aviator', brand: 'Luxottica', price: '$149', modelPath: '/models/glasses1.glb' },
+    { id: 2, category: 'glasses', emoji: '👓', name: 'Modern Square', brand: 'Ray-Ban', price: '$220', modelPath: '/models/glasses2.glb' },
+    { id: 3, category: 'hats', emoji: '🧢', name: 'Street Cap V1', brand: 'Adidas', price: '$35', modelPath: '/models/cap1.glb' },
+    { id: 4, category: 'hats', emoji: '🧢', name: 'Pro Series Cap', brand: 'Nike', price: '$45', modelPath: '/models/cap2.glb' },
 ]
 
 const TABS = [
@@ -17,8 +13,14 @@ const TABS = [
     { key: 'hats', label: 'Hats' },
 ]
 
-function ProductGallery({ onTryOnClick }) {
-    const [activeTab, setActiveTab] = useState('all')
+function ProductGallery({ onTryOnClick, activeTab: externalActiveTab }) {
+    const [activeTab, setActiveTab] = useState(externalActiveTab || 'all')
+
+    useEffect(() => {
+        if (externalActiveTab) {
+            setActiveTab(externalActiveTab)
+        }
+    }, [externalActiveTab])
 
     const filtered = activeTab === 'all'
         ? products

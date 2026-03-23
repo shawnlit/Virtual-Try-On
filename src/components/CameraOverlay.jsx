@@ -19,7 +19,7 @@ const MODELS = {
   ]
 }
 
-function CameraOverlay({ onClose, selectedProduct }) {
+function CameraOverlay({ onClose, selectedProduct, onSaveLook }) {
     const videoRef = useRef(null)
     const landmarks = useFaceMesh(videoRef)
     
@@ -27,6 +27,7 @@ function CameraOverlay({ onClose, selectedProduct }) {
     const [selectedModel, setSelectedModel] = useState(MODELS[mode][0].path)
     const [isMirrored, setIsMirrored] = useState(true)
     const [showCalibration, setShowCalibration] = useState(false)
+    const [savedStatus, setSavedStatus] = useState(false)
 
     // Calibration state
     const [calibration, setCalibration] = useState({
@@ -80,9 +81,25 @@ function CameraOverlay({ onClose, selectedProduct }) {
         if (selectedProduct) {
             const productMode = selectedProduct.category === 'hats' ? MODES.CAPS : MODES.GLASSES
             setMode(productMode)
-            setSelectedModel(MODELS[productMode][0].path)
+            
+            // If the product has a specific modelPath, use it.
+            // Otherwise fall back to first model in category.
+            if (selectedProduct.modelPath) {
+                setSelectedModel(selectedProduct.modelPath)
+            } else {
+                setSelectedModel(MODELS[productMode][0].path)
+            }
         }
     }, [selectedProduct])
+
+    const handleSave = () => {
+        onSaveLook({
+            product: selectedProduct,
+            date: new Date().toISOString()
+        })
+        setSavedStatus(true)
+        setTimeout(() => setSavedStatus(false), 2000)
+    }
 
     return (
         <div className="camera-overlay">
@@ -110,6 +127,12 @@ function CameraOverlay({ onClose, selectedProduct }) {
                 {!landmarks && (
                     <div className="tracking-status">
                         Initializing Face Tracking...
+                    </div>
+                )}
+
+                {savedStatus && (
+                    <div className="tracking-status" style={{ background: 'rgba(16, 185, 129, 0.8)', color: '#fff' }}>
+                        Look Saved to Gallery!
                     </div>
                 )}
 
@@ -283,6 +306,22 @@ function CameraOverlay({ onClose, selectedProduct }) {
             </div>
 
             <div className="camera-footer">
+                <button 
+                    className="save-look-btn" 
+                    onClick={handleSave}
+                    style={{
+                        padding: '12px 24px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: '#10b981',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        marginRight: '12px'
+                    }}
+                >
+                    Save Look
+                </button>
                 <button className="close-cam" onClick={onClose}>Stop Session</button>
             </div>
         </div>

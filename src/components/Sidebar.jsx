@@ -1,24 +1,28 @@
 import React from 'react'
 
-function Sidebar({ onOpenLogin, darkMode, onToggleTheme }) {
+function Sidebar({ onOpenLogin, darkMode, onToggleTheme, currentView, setCurrentView }) {
     const navItems = [
-        { label: 'Dashboard', active: true },
-        { label: 'Glasses' },
-        { label: 'Hats & Caps' },
-        { label: 'Saved Looks' },
-        { label: 'History' },
-        { label: 'Settings' },
+        { id: 'dashboard', label: 'Dashboard' },
+        { id: 'glasses', label: 'Glasses' },
+        { id: 'hats', label: 'Hats & Caps' },
+        { id: 'saved', label: 'Saved Looks' },
+        { id: 'history', label: 'History' },
+        { id: 'settings', label: 'Settings' },
     ]
 
     return (
         <nav className="sidebar">
-            <div className="logo">
+            <div className="logo" onClick={() => setCurrentView('dashboard')} style={{cursor: 'pointer'}}>
                 Virtual<span className="logo-dot">.</span>Fit
             </div>
 
             <div className="nav-section-label">Menu</div>
-            {navItems.map(({ label, active }) => (
-                <button key={label} className={`nav-item${active ? ' active' : ''}`}>
+            {navItems.map(({ id, label }) => (
+                <button 
+                    key={id} 
+                    className={`nav-item${currentView === id ? ' active' : ''}`}
+                    onClick={() => setCurrentView(id)}
+                >
                     {label}
                 </button>
             ))}
