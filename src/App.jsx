@@ -8,7 +8,7 @@ import LoginModal from './components/LoginModal'
 import CameraOverlay from './components/CameraOverlay'
 
 function App() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false)
+    const [user, setUser] = useState(null)
     const [showLogin, setShowLogin] = useState(false)
     const [showCamera, setShowCamera] = useState(false)
     const [selectedProduct, setSelectedProduct] = useState(null)
@@ -22,6 +22,8 @@ function App() {
         const saved = localStorage.getItem('saved_looks')
         return saved ? JSON.parse(saved) : []
     })
+
+    const isLoggedIn = !!user
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
@@ -52,10 +54,17 @@ function App() {
         }
     }
 
-    const handleLogin = () => {
-        setIsLoggedIn(true)
+    const handleLogin = (userData) => {
+        setUser(userData)
         setShowLogin(false)
-        setTimeout(() => setShowCamera(true), 400)
+        if (selectedProduct) {
+            setTimeout(() => setShowCamera(true), 400)
+        }
+    }
+
+    const handleLogout = () => {
+        setUser(null)
+        setCurrentView('dashboard')
     }
 
     const handleSaveLook = (look) => {
@@ -166,7 +175,9 @@ function App() {
         <>
             <div className="animated-bg" />
             <Sidebar
+                user={user}
                 onOpenLogin={() => setShowLogin(true)}
+                onLogout={handleLogout}
                 darkMode={darkMode}
                 onToggleTheme={() => setDarkMode(d => !d)}
                 currentView={currentView}

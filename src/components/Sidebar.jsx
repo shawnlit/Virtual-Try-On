@@ -1,6 +1,6 @@
 import React from 'react'
 
-function Sidebar({ onOpenLogin, darkMode, onToggleTheme, currentView, setCurrentView }) {
+function Sidebar({ user, onOpenLogin, onLogout, darkMode, onToggleTheme, currentView, setCurrentView }) {
     const navItems = [
         { id: 'dashboard', label: 'Dashboard' },
         { id: 'glasses', label: 'Glasses' },
@@ -36,9 +36,20 @@ function Sidebar({ onOpenLogin, darkMode, onToggleTheme, currentView, setCurrent
                 </button>
 
                 <div className="nav-section-label">Account</div>
-                <button className="nav-item" onClick={onOpenLogin}>
-                    Sign in
-                </button>
+                {user ? (
+                    <>
+                        <div className="nav-item" style={{ opacity: 0.8, pointerEvents: 'none' }}>
+                            Hi, {user.user_metadata?.full_name || user.email}
+                        </div>
+                        <button className="nav-item" onClick={onLogout}>
+                            Sign out
+                        </button>
+                    </>
+                ) : (
+                    <button className="nav-item" onClick={onOpenLogin}>
+                        Sign in
+                    </button>
+                )}
             </div>
         </nav>
     )
