@@ -8,29 +8,27 @@ import { getDistance, computeFaceBasis, lerp } from '../utils/math';
  * GLOBAL CONFIG (Pose-based)
  */
 const GLOBAL_CONFIG = {
-  SCALE_MULTIPLIER: 2.85,    
-  DEPTH_MULTIPLIER: 1.2,     
-  OFFSET_FORWARD: 0.08,      // Push slightly in front of nose bridge
-  OFFSET_UP: -0.02,          // Slight vertical adjustment along face up vector
-  LERP_POSITION: 0.4,       
-  LERP_ROTATION: 0.25,       
-  LERP_SCALE: 0.1,           
-  LERP_CALIBRATION: 0.05,    
+  SCALE_MULTIPLIER: 1.15,    // Scaled relative to eye-to-eye distance
+  OFFSET_FORWARD: 0.02,      
+  LERP_POSITION: 0.2,       
+  LERP_ROTATION: 0.15,       
+  LERP_SCALE: 0.15,           
+  LERP_CALIBRATION: 0.1,    
 };
 
 /**
- * PER-MODEL NORMALIZATION CONFIG
+ * PER-MODEL BASE CORRECTIONS (Applied once)
  */
 const MODEL_CONFIGS = {
   '/models/glasses1.glb': {
-    scaleMultiplier: 1.05,
-    offset: [0, 0, 0],
-    rotation: [0, 0, 0]
+    rotation: [-Math.PI / 2, 0, 0], // Correction for Z-up
+    scaleAdjust: 1.0,
+    offset: [0, 0, 0]
   },
   '/models/glasses2.glb': {
-    scaleMultiplier: 1.15,
-    offset: [0, 0.02, 0.05],
-    rotation: [0, 0, 0]
+    rotation: [-Math.PI / 2, 0, 0], // Correction for Z-up
+    scaleAdjust: 1.05,
+    offset: [0, 0, 0]
   }
 };
 
@@ -39,111 +37,93 @@ const GlassesModel = ({ modelPath, landmarks, calibration, isMirrored }) => {
   const groupRef = useRef();
 
   // Smoothing refs
-  const smoothedFaceWidth = useRef(0.25);
-  const smoothedCalibFactor = useRef(1.0);
+  const smoothedFaceWidth = useRef(0.1);
   
-  // 1. AUTO NORMALIZATION (Bounding Box Centering)
+  const mConfig = MODEL_CONFIGS[modelPath] || { rotation: [0,0,0], scaleAdjust: 1.0, offset: [0,0,0] };
+
+  // 1. BASE NORMALIZATION (Applied once to the model child)
   const normalizedScene = useMemo(() => {
     const clone = scene.clone();
     const box = new THREE.Box3().setFromObject(clone);
+    const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
+    
+    // Center the model
     clone.position.sub(center);
+    
+    // Normalize width to 1.0
+    const scaleFactor = 1.0 / (size.x || 1.0);
+    clone.scale.setScalar(scaleFactor * mConfig.scaleAdjust);
+    
+    // Apply base rotation correction
+    if (mConfig.rotation) {
+      clone.rotation.set(...mConfig.rotation);
+    }
+    
+    // Apply fine-tuning offset
+    if (mConfig.offset) {
+      clone.position.add(new THREE.Vector3(...mConfig.offset));
+    }
+
     return clone;
-  }, [scene]);
+  }, [scene, mConfig]);
 
-  const mConfig = MODEL_CONFIGS[modelPath] || { scaleMultiplier: 1.0, offset: [0,0,0], rotation: [0,0,0] };
-
-  useFrame(() => {
+  useFrame(({ viewport, camera }) => {
     if (!landmarks || !groupRef.current) return;
 
-    // --- 1. FACE CALIBRATION & WIDTH ---
-    const leftTemple = landmarks[234];
-    const rightTemple = landmarks[454];
-    const currentFaceWidth = getDistance(leftTemple, rightTemple);
-    if (currentFaceWidth < 0.05) return;
+    // --- 1. FACE CALIBRATION & WIDTH (Using 33 and 263) ---
+    const leftEye = landmarks[33];
+    const rightEye = landmarks[263];
+    const currentFaceWidth = getDistance(leftEye, rightEye);
+    if (currentFaceWidth < 0.01) return;
 
     smoothedFaceWidth.current = lerp(smoothedFaceWidth.current, currentFaceWidth, GLOBAL_CONFIG.LERP_CALIBRATION);
-    const currentCalibFactor = 1.0 / (smoothedFaceWidth.current || 0.1);
-    smoothedCalibFactor.current = lerp(smoothedCalibFactor.current, currentCalibFactor, GLOBAL_CONFIG.LERP_CALIBRATION);
 
-    // --- 2. COMPUTE FACE BASIS ---
+    // --- 2. COORDINATE MAPPING ---
+    const { width, height } = viewport.getCurrentViewport(camera, [0, 0, 0]);
+
     const toVec3 = (lm) => {
-      const zBase = -(GLOBAL_CONFIG.DEPTH_MULTIPLIER * smoothedCalibFactor.current);
-      
-      let mappedX = (lm.x - 0.5) * 2;
-      if (isMirrored) {
-        mappedX = -mappedX; // Flip X for mirrored view
-      }
-
-      return new THREE.Vector3(
-        mappedX,
-        -(lm.y - 0.5) * 2,
-        zBase - (lm.z * 2)
-      );
+      let x = (lm.x - 0.5) * width;
+      let y = -(lm.y - 0.5) * height;
+      if (isMirrored) x = -x;
+      const z = -lm.z * width; // Z positive towards camera
+      return new THREE.Vector3(x, y, z);
     };
 
     const basis = computeFaceBasis(landmarks, toVec3);
 
     // --- 3. TARGET POSITIONING ---
-    // Start at nose (basis.center)
-    const targetPos = basis.center.clone();
-    
-    // Offset along face FORWARD and UP vectors
+    const targetPos = basis.center.clone(); 
     targetPos.add(basis.forward.clone().multiplyScalar(GLOBAL_CONFIG.OFFSET_FORWARD));
-    targetPos.add(basis.up.clone().multiplyScalar(GLOBAL_CONFIG.OFFSET_UP));
 
-    // Apply model-specific world-space offset
-    targetPos.x += mConfig.offset[0];
-    targetPos.y += mConfig.offset[1];
-    targetPos.z += mConfig.offset[2];
-
-    // --- APPLY FACE-RELATIVE CALIBRATION ---
     if (calibration) {
-      // Use face normal (forward) for forward + depth
-      // Combining depth and forward as both move along the face normal
-      const totalForward = (calibration.forward || 0) + (calibration.depth || 0);
-      targetPos.add(basis.forward.clone().multiplyScalar(totalForward));
-      
-      // Use face up vector for vertical offset
-      targetPos.add(basis.up.clone().multiplyScalar(calibration.yOffset));
+      targetPos.add(basis.forward.clone().multiplyScalar(calibration.forward || 0));
+      targetPos.add(basis.up.clone().multiplyScalar(calibration.yOffset || 0));
     }
 
-    // --- 4. TARGET ROTATION (Roll only) ---
-    const leftEye = landmarks[33];
-    const rightEye = landmarks[263];
-    const dy = rightEye.y - leftEye.y;
-    const dx = rightEye.x - leftEye.x;
-    
-    // Invert roll if mirrored to keep direction correct
-    let rollAngle = -Math.atan2(dy, dx); 
-    if (isMirrored) {
-      rollAngle = -rollAngle;
-    }
-
-    const targetQuaternion = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(0, 0, rollAngle + mConfig.rotation[2])
-    );
+    // --- 4. TARGET ROTATION (Face Orientation) ---
+    // We map Model +X -> basis.right, Model +Y -> basis.up, Model +Z -> basis.forward
+    const rotationMatrix = new THREE.Matrix4().makeBasis(basis.right, basis.up, basis.forward);
+    const targetQuaternion = new THREE.Quaternion().setFromRotationMatrix(rotationMatrix);
 
     // --- 5. TARGET SCALE ---
-    let targetScale = smoothedFaceWidth.current * GLOBAL_CONFIG.SCALE_MULTIPLIER * mConfig.scaleMultiplier;
-    
-    if (calibration) {
-      targetScale *= calibration.scale;
-    }
+    // Since model is normalized to width 1.0, group scale = desired world width
+    let targetScale = smoothedFaceWidth.current * width * GLOBAL_CONFIG.SCALE_MULTIPLIER;
+    if (calibration) targetScale *= calibration.scale;
 
-    // --- 6. APPLY WITH SMOOTHING ---
+    // --- 6. APPLY TO GROUP ---
     const g = groupRef.current;
-    
     g.position.lerp(targetPos, GLOBAL_CONFIG.LERP_POSITION);
     g.quaternion.slerp(targetQuaternion, GLOBAL_CONFIG.LERP_ROTATION);
-
     const s = lerp(g.scale.x, targetScale, GLOBAL_CONFIG.LERP_SCALE);
     g.scale.set(s, s, s);
   });
 
+
   return (
     <group ref={groupRef}>
        <primitive object={normalizedScene} />
+       <axesHelper args={[0.5]} />
     </group>
   );
 };

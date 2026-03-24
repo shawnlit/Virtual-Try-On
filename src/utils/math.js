@@ -37,27 +37,29 @@ export const lerpPoint = (p1, p2, t) => {
  * @param {Function} toVec3 - Converter to THREE space
  */
 export const computeFaceBasis = (landmarks, toVec3) => {
-  const leftEye = toVec3(landmarks[33]);
-  const rightEye = toVec3(landmarks[263]);
-  const nose = toVec3(landmarks[168]);
+  const noseBridge = toVec3(landmarks[168]);
+  const noseTip = toVec3(landmarks[1]);
   const forehead = toVec3(landmarks[10]);
 
-  // 1. Right vector: from left eye to right eye
-  const right = new THREE.Vector3().subVectors(rightEye, leftEye).normalize();
+  // 1. Forward vector: from nose bridge to nose tip
+  // This points out of the face.
+  const forward = new THREE.Vector3().subVectors(noseTip, noseBridge).normalize();
   
-  // 2. Up vector: from nose to forehead
-  const up = new THREE.Vector3().subVectors(forehead, nose).normalize();
+  // 2. Initial Up vector: from nose bridge to forehead
+  const initialUp = new THREE.Vector3().subVectors(forehead, noseBridge).normalize();
   
-  // 3. Forward vector: cross product of right and up
-  const forward = new THREE.Vector3().crossVectors(right, up).normalize();
+  // 3. Right vector: cross product of initialUp and forward
+  // Ensures right is perpendicular to both.
+  const right = new THREE.Vector3().crossVectors(initialUp, forward).normalize();
   
-  // 4. Re-calculate up to ensure perfect orthogonality
-  const orthoUp = new THREE.Vector3().crossVectors(forward, right).normalize();
+  // 4. Final Up vector: cross product of forward and right
+  // Ensures all three are perfectly orthogonal.
+  const up = new THREE.Vector3().crossVectors(forward, right).normalize();
 
   return {
     right,
-    up: orthoUp,
+    up,
     forward,
-    center: nose
+    center: noseBridge
   };
 };
