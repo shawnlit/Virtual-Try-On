@@ -11,9 +11,14 @@ export const useFaceMesh = (videoRef) => {
     let active = true;
 
     async function setupFaceMesh() {
-      // Resolve the constructor (FaceMeshModule.FaceMesh or FaceMeshModule.default)
-      const FaceMesh = FaceMeshModule.FaceMesh || FaceMeshModule.default;
-      console.log("FaceMesh constructor:", FaceMesh);
+      console.log("FaceMeshModule:", FaceMeshModule);
+      
+      // Resolve the constructor (FaceMeshModule.FaceMesh, FaceMeshModule.default.FaceMesh, or FaceMeshModule.default)
+      const FaceMesh = FaceMeshModule.FaceMesh || 
+                       (FaceMeshModule.default && FaceMeshModule.default.FaceMesh) || 
+                       FaceMeshModule.default;
+      
+      console.log("Resolved FaceMesh:", FaceMesh);
 
       if (typeof FaceMesh !== 'function') {
         console.error("FaceMesh is not a constructor! Type:", typeof FaceMesh);
