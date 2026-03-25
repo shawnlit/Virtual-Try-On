@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import * as FaceMeshModule from '@mediapipe/face_mesh';
 
 export const useFaceMesh = (videoRef) => {
   const faceMeshRef = useRef(null);
@@ -10,27 +11,18 @@ export const useFaceMesh = (videoRef) => {
     let active = true;
 
     async function setupFaceMesh() {
-      const mpFaceMesh = await import('@mediapipe/face_mesh');
-      console.log("MediaPipe FaceMesh module:", mpFaceMesh);
-
-      // Handle different export styles (named, default, or default.FaceMesh)
-      const FaceMesh = mpFaceMesh.FaceMesh || 
-                       (mpFaceMesh.default && mpFaceMesh.default.FaceMesh) || 
-                       mpFaceMesh.default;
-
-      console.log("Resolved FaceMesh constructor:", FaceMesh);
+      // Resolve the constructor (FaceMeshModule.FaceMesh or FaceMeshModule.default)
+      const FaceMesh = FaceMeshModule.FaceMesh || FaceMeshModule.default;
+      console.log("FaceMesh constructor:", FaceMesh);
 
       if (typeof FaceMesh !== 'function') {
         console.error("FaceMesh is not a constructor! Type:", typeof FaceMesh);
+        return;
       }
 
       const faceMesh = new FaceMesh({
         locateFile: (file) => {
-          // Using a fixed version to ensure compatibility with the NPM package version
-          const version = '0.4.1633559619';
-          const url = `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@${version}/${file}`;
-          console.log("Loading MediaPipe asset:", url);
-          return url;
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
         },
       });
 
