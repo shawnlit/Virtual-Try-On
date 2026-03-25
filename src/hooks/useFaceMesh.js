@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import * as FaceMeshModule from '@mediapipe/face_mesh';
 
 export const useFaceMesh = (videoRef) => {
   const faceMeshRef = useRef(null);
@@ -7,18 +6,12 @@ export const useFaceMesh = (videoRef) => {
   const requestRef = useRef();
 
   useEffect(() => {
-    // MediaPipe Face Mesh is a client-side library
+    // MediaPipe Face Mesh is loaded from CDN in index.html
     let active = true;
 
     async function setupFaceMesh() {
-      console.log("FaceMeshModule:", FaceMeshModule);
-      
-      // Resolve the constructor (FaceMeshModule.FaceMesh, FaceMeshModule.default.FaceMesh, or FaceMeshModule.default)
-      const FaceMesh = FaceMeshModule.FaceMesh || 
-                       (FaceMeshModule.default && FaceMeshModule.default.FaceMesh) || 
-                       FaceMeshModule.default;
-      
-      console.log("Resolved FaceMesh:", FaceMesh);
+      const FaceMesh = window.FaceMesh;
+      console.log("FaceMesh global:", FaceMesh);
 
       if (typeof FaceMesh !== 'function') {
         console.error("FaceMesh is not a constructor! Type:", typeof FaceMesh);
