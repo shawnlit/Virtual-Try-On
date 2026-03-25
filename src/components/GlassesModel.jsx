@@ -4,6 +4,12 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { getDistance, computeFaceBasis, lerp } from '../utils/math';
 
+console.log("GlassesModel: THREE classes check:", { 
+  Box3: THREE.Box3, 
+  Vector3: THREE.Vector3, 
+  Matrix4: THREE.Matrix4 
+});
+
 /**
  * GLOBAL CONFIG (Pose-based)
  */

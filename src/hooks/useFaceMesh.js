@@ -10,11 +10,27 @@ export const useFaceMesh = (videoRef) => {
     let active = true;
 
     async function setupFaceMesh() {
-      const { FaceMesh } = await import('@mediapipe/face_mesh');
+      const mpFaceMesh = await import('@mediapipe/face_mesh');
+      console.log("MediaPipe FaceMesh module:", mpFaceMesh);
+
+      // Handle different export styles (named, default, or default.FaceMesh)
+      const FaceMesh = mpFaceMesh.FaceMesh || 
+                       (mpFaceMesh.default && mpFaceMesh.default.FaceMesh) || 
+                       mpFaceMesh.default;
+
+      console.log("Resolved FaceMesh constructor:", FaceMesh);
+
+      if (typeof FaceMesh !== 'function') {
+        console.error("FaceMesh is not a constructor! Type:", typeof FaceMesh);
+      }
 
       const faceMesh = new FaceMesh({
         locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+          // Using a fixed version to ensure compatibility with the NPM package version
+          const version = '0.4.1633559619';
+          const url = `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@${version}/${file}`;
+          console.log("Loading MediaPipe asset:", url);
+          return url;
         },
       });
 

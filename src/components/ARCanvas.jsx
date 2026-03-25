@@ -1,8 +1,17 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as THREE from 'three';
 import GlassesModel from './GlassesModel';
 import CapModel from './CapModel';
+
+console.log("GLTFLoader constructor check:", GLTFLoader);
+console.log("THREE classes check:", { 
+  Box3: THREE.Box3, 
+  Vector3: THREE.Vector3, 
+  Matrix4: THREE.Matrix4 
+});
 
 const ARCanvas = ({ landmarks, selectedModel, mode, calibration, isMirrored }) => {
   return (
