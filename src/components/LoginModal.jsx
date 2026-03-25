@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { supabase } from '../utils/supabaseClient'
 
 function LoginModal({ onClose, onLogin }) {
     const [isSignup, setIsSignup] = useState(true)
@@ -13,27 +14,24 @@ function LoginModal({ onClose, onLogin }) {
         setError('')
         setLoading(true)
 
-        const endpoint = isSignup ? '/api/signup' : '/api/login'
-        const body = isSignup ? { email, password, name } : { email, password }
-
         try {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            })
-
-            const data = await response.json()
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Authentication failed')
-            }
-
-            // Successfully authenticated
             if (isSignup) {
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: { full_name: name }
+                    }
+                })
+                if (error) throw error
                 alert('Account created! Please check your email for verification.')
                 setIsSignup(false)
             } else {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                })
+                if (error) throw error
                 onLogin(data.user)
             }
         } catch (err) {

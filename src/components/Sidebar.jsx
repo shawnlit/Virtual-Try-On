@@ -1,6 +1,8 @@
 import React from 'react'
+import { useAuth } from '../context/AuthContext'
 
-function Sidebar({ user, onOpenLogin, onLogout, darkMode, onToggleTheme, currentView, setCurrentView }) {
+function Sidebar({ onOpenLogin, onLogout, darkMode, onToggleTheme, currentView, setCurrentView }) {
+    const { user } = useAuth()
     const navItems = [
         { id: 'dashboard', label: 'Dashboard' },
         { id: 'glasses', label: 'Glasses' },

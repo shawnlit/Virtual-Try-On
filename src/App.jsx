@@ -6,22 +6,18 @@ import HowItWorks from './components/HowItWorks'
 import Testimonials from './components/Testimonials'
 import LoginModal from './components/LoginModal'
 import CameraOverlay from './components/CameraOverlay'
+import { useAuth } from './context/AuthContext'
+import { getSavedLooks, getHistory, addHistory, saveLook as supabaseSaveLook } from './utils/supabaseClient'
 
 function App() {
-    const [user, setUser] = useState(null)
+    const { user, signOut } = useAuth()
     const [showLogin, setShowLogin] = useState(false)
     const [showCamera, setShowCamera] = useState(false)
     const [selectedProduct, setSelectedProduct] = useState(null)
     const [darkMode, setDarkMode] = useState(false)
     const [currentView, setCurrentView] = useState('dashboard')
-    const [history, setHistory] = useState(() => {
-        const saved = localStorage.getItem('tryon_history')
-        return saved ? JSON.parse(saved) : []
-    })
-    const [savedLooks, setSavedLooks] = useState(() => {
-        const saved = localStorage.getItem('saved_looks')
-        return saved ? JSON.parse(saved) : []
-    })
+    const [history, setHistory] = useState([])
+    const [savedLooks, setSavedLooks] = useState([])
 
     const isLoggedIn = !!user
 
@@ -30,19 +26,35 @@ function App() {
     }, [darkMode])
 
     useEffect(() => {
-        localStorage.setItem('tryon_history', JSON.stringify(history))
-    }, [history])
+        if (isLoggedIn) {
+            fetchUserData()
+        } else {
+            setHistory([])
+            setSavedLooks([])
+        }
+    }, [isLoggedIn])
 
-    useEffect(() => {
-        localStorage.setItem('saved_looks', JSON.stringify(savedLooks))
-    }, [savedLooks])
+    const fetchUserData = async () => {
+        try {
+            const [looks, hist] = await Promise.all([
+                getSavedLooks(),
+                getHistory()
+            ])
+            setSavedLooks(looks)
+            setHistory(hist.map(h => h.product_data))
+        } catch (err) {
+            console.error('Error fetching data:', err)
+        }
+    }
 
-    const handleOpenTryOn = (product = null) => {
-        if (product) {
-            setHistory(prev => {
-                const filtered = prev.filter(p => p.id !== product.id)
-                return [product, ...filtered].slice(0, 10)
-            })
+    const handleOpenTryOn = async (product = null) => {
+        if (product && isLoggedIn) {
+            try {
+                await addHistory(product)
+                fetchUserData()
+            } catch (err) {
+                console.error('Error adding history:', err)
+            }
         }
 
         if (!isLoggedIn) {
@@ -55,20 +67,24 @@ function App() {
     }
 
     const handleLogin = (userData) => {
-        setUser(userData)
         setShowLogin(false)
         if (selectedProduct) {
             setTimeout(() => setShowCamera(true), 400)
         }
     }
 
-    const handleLogout = () => {
-        setUser(null)
+    const handleLogout = async () => {
+        await signOut()
         setCurrentView('dashboard')
     }
 
-    const handleSaveLook = (look) => {
-        setSavedLooks(prev => [look, ...prev])
+    const handleSaveLook = async (look) => {
+        try {
+            await supabaseSaveLook(look)
+            fetchUserData()
+        } catch (err) {
+            console.error('Error saving look:', err)
+        }
     }
 
     const renderContent = () => {
@@ -94,10 +110,10 @@ function App() {
                         <div className="product-grid">
                             {savedLooks.length > 0 ? savedLooks.map((look, i) => (
                                 <div key={i} className="product-card">
-                                    <span className="product-card-emoji">{look.product?.emoji || '📸'}</span>
+                                    <span className="product-card-emoji">{look.product_emoji || '📸'}</span>
                                     <div className="product-card-name">Look #{savedLooks.length - i}</div>
-                                    <div className="product-card-brand">{look.product?.name || 'Custom Look'}</div>
-                                    <div className="product-card-price" style={{fontSize: '10px'}}>{new Date(look.date).toLocaleString()}</div>
+                                    <div className="product-card-brand">{look.product_name || 'Custom Look'}</div>
+                                    <div className="product-card-price" style={{fontSize: '10px'}}>{new Date(look.created_at).toLocaleString()}</div>
                                 </div>
                             )) : (
                                 <div style={{gridColumn: '1/-1', textAlign: 'center', padding: '40px', opacity: 0.6}}>
@@ -145,18 +161,6 @@ function App() {
                                 </button>
                             </div>
                             <div className="settings-row" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid rgba(255,255,255,0.1)'}}>
-                                <div>
-                                    <div style={{fontWeight: 'bold'}}>Clear History</div>
-                                    <div style={{fontSize: '12px', opacity: 0.6}}>Remove all your try-on history</div>
-                                </div>
-                                <button 
-                                    onClick={() => setHistory([])}
-                                    style={{padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', cursor: 'pointer'}}
-                                >
-                                    Clear
-                                </button>
-                            </div>
-                            <div className="settings-row" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0'}}>
                                 <div>
                                     <div style={{fontWeight: 'bold'}}>Privacy Mode</div>
                                     <div style={{fontSize: '12px', opacity: 0.6}}>Camera data is processed locally</div>

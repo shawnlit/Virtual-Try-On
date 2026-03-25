@@ -94,8 +94,11 @@ function CameraOverlay({ onClose, selectedProduct, onSaveLook }) {
 
     const handleSave = () => {
         onSaveLook({
-            product: selectedProduct,
-            date: new Date().toISOString()
+            product_id: selectedProduct?.id,
+            product_name: selectedProduct?.name,
+            product_emoji: selectedProduct?.emoji,
+            model_path: selectedModel,
+            category: mode
         })
         setSavedStatus(true)
         setTimeout(() => setSavedStatus(false), 2000)
